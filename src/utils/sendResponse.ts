@@ -1,20 +1,47 @@
 import { Response } from "express"
 
-type TResponse<T> = {
-    statusCode: number;
-    success: boolean;
-    message: string;
-    data?: T;
+type SuccessOptions = {
+    statusCode?: number;
+    message?: string;
+    data?: any;
 };
 
-const sendRepose = <T>(res: Response, data: TResponse<T>) => {
-    const { statusCode, success, message, data: DataResponse } = data;
+type ErrorOptions = {
+    statusCode?: number;
+    message: string;
+    errors?: any;
+};
 
+export const sendSuccess = (
+    res: Response,
+    { statusCode = 200, message = "Success", data }: SuccessOptions
+) => {
     res.status(statusCode).json({
-        success,
+        success: true,
         message,
-        data: DataResponse
-    })
-}
+        data,
+        meta: {
+        timestamp: new Date().toISOString(),
+        },
+    });
+    };
 
-export default sendRepose;
+export const sendError = (
+    res: Response,
+    {
+    statusCode = 500,
+    message = "Something went wrong",
+    errors,
+
+    }: ErrorOptions
+) => {
+    res.status(statusCode).json({
+        success: false,
+        message,
+        errors,
+
+    meta: {
+        timestamp: new Date().toISOString(),
+        },
+    });
+};

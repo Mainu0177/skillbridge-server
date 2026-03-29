@@ -7,41 +7,119 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-    id        String   @id @default(uuid())
-    name      String
-    email     String   @unique
-    password String
-    role Role
-    status Status @default(ACTIVE)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    tutors Tutor[]
-
-    @@index([status])
-    @@map("users")
-}
-enum Role{
+enum Role {
   STUDENT
   TUTOR
   ADMIN
 }
-enum Status{
+
+enum Status {
   ACTIVE
   SUSPENDED
 }
 
-model Tutor {
-  id String @id @default(ulid())
-  name String
-  bio String
-  age String
-  contact String
-  
+enum BookingStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String  @id @default(uuid())
+  name          String
+  email         String  @unique
+  password      String
+  location      String?
+  profileAvatar String?
+  role          Role
+  status        Status  @default(ACTIVE)
+  emailVerified Boolean
+
+  //* Relations
+
+  tutorProfile    TutorProfile?
+  studentBookings Booking[]     @relation("StudentBookings")
+  reviewsGiven    Review[]      @relation("StudentReviews")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 
-  ownerId String
-  owner User @relation(fields: [ownerId], references: [id])
+model TutorProfile {
+  id           String         @id @default(ulid())
+  userId       String         @unique
+  bio          String
+  hourlyRate   Int
+  experience   String
+  availability Availability[]
+
+  user User @relation(fields: [userId], references: [id])
+
+  subjects   String[]
+  booking    Booking[]
+  categoryId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Availability {
+  id        String       @id @default(uuid())
+  tutorId   String
+  tutor     TutorProfile @relation(fields: [tutorId], references: [id])
+  date      DateTime
+  bookings  Booking[]
+  startTime String
+  isBooked  Boolean      @default(false)
+  endTime   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id       String   @id @default(uuid())
+  name     String   @unique
+  subjects String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  studentId      String
+  tutorId        String
+  dateTime       DateTime
+  status         BookingStatus @default(CONFIRMED)
+  availabilityId String
+
+  //* Relation
+  student User @relation("StudentBookings", fields: [studentId], references: [id])
+
+  tutor TutorProfile @relation(fields: [tutorId], references: [id])
+
+  availability Availability @relation(fields: [availabilityId], references: [id])
+
+  review Review?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        String @id @default(uuid())
+  bookingId String @unique
+  studentId String
+  tutorId   String
+
+  rating  Int
+  comment String
+
+  //* Relation
+  booking Booking @relation(fields: [bookingId], references: [id])
+  student User    @relation("StudentReviews", fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

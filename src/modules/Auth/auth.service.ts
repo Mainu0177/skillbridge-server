@@ -1,51 +1,44 @@
-import { prisma } from "../../lib/prisma";
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 
-export const secret = process.env.JWT_SECRET as string;
+import { prisma } from "../../lib/prisma";
+import { RegisterPayload } from "./types";
+import { Role, Status } from "../../../generated/prisma/enums";
 
-const registerUser = async (payload: any) => {
-    const hashPassword = await bcrypt.hash(payload.password, 10);
-    const result = await prisma.user.create({
-        data: {...payload, password: hashPassword},
+const JWT_SECRET = process.env.JWT_SECRET!
+
+const registerUser = async (payload: RegisterPayload) => {
+    const { name, email, password, role } = payload;
+
+    //* check if user exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) throw new Error("Email already registered");
+
+    //* Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    //* Assign role safely
+    let userRole: Role = Role.STUDENT;
+    if (role && role.toUpperCase() === "TUTOR") userRole = Role.TUTOR;
+
+    //* Create user
+    const user = await prisma.user.create({
+        data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: userRole,
+            status: Status.ACTIVE,
+            emailVerified: false
+        },
     });
-    const { password, ...newResult } = result;
-    return newResult;
+    //* Sign JWT
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
+        expiresIn: "7d",
+    });
+    return {user, token}
 }
 
-const userLogin = async (payload: any) => {
-    const user = await prisma.user.findUnique({
-        where: {
-            email: payload.email
-        }
-    });
-    if (!user) {
-        throw new Error("User not found")
-    }
-
-    const isPasswordMatch = await bcrypt.compare(payload.password, user.password);
-    if (!isPasswordMatch) {
-        throw new Error("Invalid password")
-    }
-
-    const userData = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status
-
-    }
-    const token = jwt.sign(userData, secret, { expiresIn: "1d" });
-    return {
-        token,
-        user
-    }
-}
-
-export const AuthService = {
-    // Add service methods here
+export const authServices = {
     registerUser,
-    userLogin
-    };
+}

@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import { AuthRoutes } from './modules/Auth/auth.route';
-import { TutorRoutes } from './modules/Tutor/tutor.route';
+import { TutorRoutes } from './modules/tutor/tutor.route';
 
 const app: Application = express();
 
