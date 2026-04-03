@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 
 import { studentService } from "./student.service";
-import { sendSuccess } from "../../utils/apiResponse";
+import { sendSuccess } from "../../utils/sendResponse";
+
 
 
 const getProfile= async (req: Request, res: Response,next:NextFunction) => {
