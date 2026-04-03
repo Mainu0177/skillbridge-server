@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 import { sendSuccess } from "../../utils/sendResponse";
+import { sharedServices } from "./shared.service";
 
 const getAllCategories = async (req:Request,res:Response,next:NextFunction) =>{
     try {
