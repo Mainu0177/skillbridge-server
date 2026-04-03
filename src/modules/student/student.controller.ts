@@ -1,0 +1,104 @@
+import { NextFunction, Request, Response } from "express";
+
+import { studentService } from "./student.service";
+import { sendSuccess } from "../../utils/apiResponse";
+
+
+const getProfile= async (req: Request, res: Response,next:NextFunction) => {
+    try {
+        const user = await studentService.getProfile(req.user!.userId);
+    
+        return sendSuccess(res,{
+            statusCode:200,
+            message:"fetch profile successfully",
+            data:user
+        })
+        } catch (err: any) {
+        next(err)
+    }
+}
+
+const updateProfile = async (req: Request, res: Response,next:NextFunction) => {
+    try {
+        const data = req.body;
+        const updated = await studentService.updateProfile(req.user!.userId, data);
+        return sendSuccess(res,{
+            statusCode:200,
+            message:" profile updated successfully",
+            data:updated
+        })
+    } catch (err: any) {
+            next(err)
+
+    }
+}
+
+const updateProfileAvatar = async (req: Request, res: Response,next:NextFunction) => {
+    try {
+        const data = req.body;
+        console.log("data",data);
+        
+        // const updated = await studentService.updateProfile(req.user!.userId, data);
+        return sendSuccess(res,{
+            statusCode:200,
+            message:" profile avatar updated successfully",
+            data:{
+            profileAvatar:"https://static.vecteezy.com/system/resources/thumbnails/032/176/191/small/business-avatar-profile-black-icon-man-of-user-symbol-in-trendy-flat-style-isolated-on-male-profile-people-diverse-face-for-social-network-or-web-vector.jpg"
+            }
+        })
+    } catch (err: any) {
+            next(err)
+
+    }
+}
+
+const changePassword = async (req: Request, res: Response,next:NextFunction) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const result = await studentService.changePassword(req.user!.userId, oldPassword, newPassword);
+        return sendSuccess(res,{
+            statusCode:200,
+            message:"password change successfully",
+        })
+        } catch (err: any) {
+            next(err)
+    }
+}
+
+const deleteAccount= async (req: Request, res: Response,next:NextFunction) => {
+    try {
+    await studentService.deleteAccount(req.user!.userId);
+        return sendSuccess(res,{
+            statusCode:200,
+            message:"account delete successfully",
+        })
+    } catch (err: any) {
+    next(err)
+    }
+}
+
+//* Frontend ui rendering login
+const getStudentDashboardStats = async (req:Request,res:Response,next:NextFunction)=>{
+    try {
+        const userId =  req.params?.id as string
+        console.log("user",req.user);
+        
+        const stats = await studentService.getStudentStatsData(userId!);
+        return sendSuccess(res,{
+            statusCode:200,
+            data:stats,
+            message:"fetch dashboard stats successfully"
+        })
+        } catch (error) {
+        next(error)
+    }
+}
+
+export const studentController = {
+    getProfile,
+    updateProfile,
+    changePassword,
+    deleteAccount,
+    getStudentDashboardStats,
+    updateProfileAvatar
+};
