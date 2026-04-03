@@ -4,7 +4,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
-    PORT: z.coerce.number().default(8000),
+    PORT: z.coerce.number().default(5000),
     DATABASE_URL: z.string().url().or(z.string().startsWith('postgresql://')),
     JWT_SECRET: z.string(),
     CLOUDINARY_SECRET: z.string(),
