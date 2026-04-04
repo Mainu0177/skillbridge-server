@@ -1,6 +1,8 @@
 
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../lib/prisma";
+import { tutorServices } from "./tutor.service";
+import { sendError, sendSuccess } from "../../utils/sendResponse";
 
 
 //* Create Tutor profile

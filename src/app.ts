@@ -33,7 +33,7 @@ app.use('/api/v1/tutor', TutorRoutes);
 app.use('/api/v1/tutor', TutorRoutes);
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello from Apollo Gears World!');
+  res.send('Hello Mainuddin Khan!');
 });
 
 export const startServer = async () => {
