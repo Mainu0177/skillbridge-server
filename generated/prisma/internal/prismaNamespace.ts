@@ -898,6 +898,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   password: 'password',
   location: 'location',
+  phoneNumber: 'phoneNumber',
   profileAvatar: 'profileAvatar',
   role: 'role',
   status: 'status',
@@ -917,6 +918,7 @@ export const TutorProfileScalarFieldEnum = {
   experience: 'experience',
   subjects: 'subjects',
   categoryId: 'categoryId',
+  category: 'category',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

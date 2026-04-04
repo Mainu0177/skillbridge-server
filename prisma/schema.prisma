@@ -1,6 +1,7 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  // output   = "../generated/prisma"
+  output   = "../src/generated"
 }
 
 datasource db {
@@ -30,6 +31,7 @@ model User {
   email         String  @unique
   password      String
   location      String?
+  phoneNumber String?
   profileAvatar String?
   role          Role
   status        Status  @default(ACTIVE)
@@ -56,9 +58,10 @@ model TutorProfile {
   user User @relation(fields: [userId], references: [id])
 
   subjects   String[]
-  booking    Booking[]
+  bookings    Booking[]
   categoryId String
 
+  category  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

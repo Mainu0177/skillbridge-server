@@ -106,8 +106,8 @@ const handleAvatarChange = async (req: Request, res: Response, next: NextFunctio
   }
 }
 
-export const AuthController = {
-  // Add controller methods here
+export const AuthControllers = {
+  //* Add controller methods here
   registerUser,
   loginUser,
   logoutUser,

@@ -36,13 +36,13 @@ const getAllBookings = async () => {
             availability:true,
             review:true,
             tutor:{
-            include:{
-            user:{
-                select:{
-                name:true
+                include:{
+                    user:{
+                        select:{
+                            name:true
+                        }
+                    }
                 }
-            }
-            }
             }
         },
         orderBy: { createdAt: "desc" },
@@ -57,10 +57,9 @@ const updateUserStatus = async (userId: string, status: Status) => {
         data: { status },
         select: { id: true, name: true, email: true, status: true },
     });
-    };
-    const createCategory = async (payload:{
-    name:string,subjects:string[]
-    }) => {
+};
+    
+const createCategory = async (payload:{name:string,subjects:string[]}) => {
 
     const newCategory = await prisma.category.create({
         data:payload
@@ -70,25 +69,26 @@ const updateUserStatus = async (userId: string, status: Status) => {
 
 };
 
-const updateUserStatus = async (userId: string, status: Status) => {
-    console.log(status);
-    
-    return await prisma.user.update({
-        where: { id: userId },
-        data: { status },
-        select: { id: true, name: true, email: true, status: true },
+const deleteCategory = async (categoryId:string) => {
+    const newCategory = await prisma.category.delete({
+        where:{
+            id:categoryId
+        }
     });
-    };
-    const createCategory = async (payload:{
-    name:string,subjects:string[]
-    }) => {
-
-    const newCategory = await prisma.category.create({
-        data:payload
-    });
-
     return newCategory
+};
 
+const updateCategory = async (payload:{name:string,subjects:string[],categoryId:string}) => {
+    const newCategory = await prisma.category.update({
+    where:{
+        id:payload.categoryId
+    },
+    data:{
+        name:payload.name,
+        subjects:payload.subjects,
+    }
+    });
+    return newCategory
 };
 
 export async function getDashboardData() {
@@ -105,16 +105,16 @@ export async function getDashboardData() {
             role: "TUTOR",
             status: "ACTIVE",
             tutorProfile: {
-            booking: {
-                some: {
-                status: {
-                    in: ["CONFIRMED", "COMPLETED"],
+                bookings: {
+                    some: {
+                        status: {
+                            in: ["CONFIRMED", "COMPLETED"],
+                        },
+                    },
                 },
-                },
-            },
             },
         },
-        }),
+    }),
 
         // Active Students
         prisma.user.count({
@@ -125,7 +125,7 @@ export async function getDashboardData() {
             some: {},
             },
         },
-        }),
+    }),
 
         // Total bookings
         prisma.booking.count(),

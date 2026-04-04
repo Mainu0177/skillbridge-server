@@ -1,15 +1,14 @@
 
 import { Router } from "express";
 import { adminControllers } from "./admin.controller";
-import { authMiddleware, roleMiddleware } from "../../middleware/auth-middlewares";
-import { validateRequest } from "../../middleware/validateRequest";
+import { authMiddleware, roleMiddleware } from "../../middlewares/auth";
+import { validateRequest } from "../../middlewares/validateRequest";
 import { adminSchemas } from "./admin.schemas";
 
 const router:Router = Router();
 
 // All routes protected: only ADMIN role
 router.use(authMiddleware, roleMiddleware(["ADMIN"]));
-
 
 router.get("/profile", adminControllers.getProfile);
 
