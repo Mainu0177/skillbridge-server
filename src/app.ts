@@ -2,6 +2,7 @@ import express, {type Express, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
+import { toNodeHandler } from "better-auth/node";
 import { AuthRoutes } from './modules/Auth/auth.route';
 import { TutorRoutes } from './modules/tutor/tutor.route';
 import { corsConfig } from './config/cors';
@@ -9,8 +10,11 @@ import { envConfig } from './config/env';
 import { applyMiddleware } from './middlewares';
 import { notFound } from './middlewares/notFound';
 import { errorHandler } from './middlewares/errorHandler';
+import { auth } from './lib/auth';
 
 const app: Express = express();
+
+app.all("/api/v1/auth/*splat", toNodeHandler(auth));
 
 // parsers
 app.use(express.json({ limit: '1mb' }));

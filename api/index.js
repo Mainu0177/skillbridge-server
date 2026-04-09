@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { toNodeHandler } from "better-auth/node";
 
 // src/modules/Auth/auth.route.ts
 import { Router } from "express";
@@ -1323,8 +1324,21 @@ var errorHandler = (err, _req, res, _next) => {
   });
 };
 
+// src/lib/auth.ts
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+var auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql"
+  }),
+  emailAndPassword: {
+    enabled: true
+  }
+});
+
 // src/app.ts
 var app = express();
+app.all("/api/v1/auth/*splat", toNodeHandler(auth));
 app.use(express.json({ limit: "1mb" }));
 app.set("trust proxy", 1);
 app.use(cookieParser());
@@ -1339,16 +1353,9 @@ app.use(notFound);
 app.use(errorHandler);
 var app_default = app;
 
-// src/server.ts
-var PORT = process.env.PORT;
-async function main() {
-  try {
-    app_default.listen(envConfig.PORT, () => {
-      console.log(`Example app listening on port http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.log(err);
-  }
-}
-main();
-//# sourceMappingURL=server.js.map
+// src/index.ts
+var index_default = app_default;
+export {
+  index_default as default
+};
+//# sourceMappingURL=index.js.map
