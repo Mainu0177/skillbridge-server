@@ -4,28 +4,44 @@ import cookieParser from 'cookie-parser';
 
 import { toNodeHandler } from "better-auth/node";
 import { AuthRoutes } from './modules/Auth/auth.route';
-import { TutorRoutes } from './modules/tutor/tutor.route';
+import { TutorRoutes, tutorsRouterPublic } from './modules/tutor/tutor.route';
 import { corsConfig } from './config/cors';
-import { envConfig } from './config/env';
-import { applyMiddleware } from './middlewares';
 import { notFound } from './middlewares/notFound';
 import { errorHandler } from './middlewares/errorHandler';
 import { auth } from './lib/auth';
+import studentRoutes from "./modules/student/student.route";
+import bookingRoutes from "./modules/booking/booking.route";
+import sharedRoutes from "./modules/shared/shared.route";
+import adminRoutes from "./modules/admin/admin.route";
+import reviewRoutes from "./modules/review/review.route";
 
-const app: Express = express();
-
-app.all("/api/v1/auth/*splat", toNodeHandler(auth));
 
 // parsers
-app.use(express.json({ limit: '1mb' }));
+const app: Express = express();
+app.all("/api/auth/*splat", toNodeHandler(auth));
 app.set("trust proxy", 1);
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(cors(corsConfig));
 
-// application routes
-app.use('/api/v1/auth', AuthRoutes);
-app.use('/api/v1/tutor', TutorRoutes);
+
+app.use("/api/auth",AuthRoutes) // auth routes
+app.use("/api/tutor",TutorRoutes) // only tutor private routes
+app.use("/api/review",reviewRoutes) // only tutor private routes
+app.use("/api/tutors",tutorsRouterPublic) // tutors public access routes
+app.use("/api/booking",bookingRoutes) // student only booking routes
+app.use("/api/student",studentRoutes) // student only 
+app.use("/api/admin",adminRoutes) // admin only 
+app.use("/api/shared",sharedRoutes) // shared or public apis only 
+app.get("/welcome-page",(req,res)=>{
+  res.send("welcome to our my app")
+})
+app.get('/check-time', (req, res) => {
+    res.json({
+        serverTime: new Date().toISOString(),
+        localTime: new Date().toLocaleString()
+    });
+})
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello Mainuddin Khan!');

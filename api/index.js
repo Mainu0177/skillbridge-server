@@ -26,7 +26,7 @@ var loginSchema = z.object({
     }).email("Please provide a valid email address"),
     password: z.string({
       required_error: "Password is required"
-    }).min(8, "Password must be at least 8 characters long")
+    }).min(6, "Password must be at least 6 characters long")
   })
 });
 var authSchemas = {
@@ -311,7 +311,7 @@ import { z as z3 } from "zod";
 dotenv.config();
 var envSchema = z3.object({
   PORT: z3.coerce.number().default(5e3),
-  DATABASE_URL: z3.string().url().or(z3.string().startsWith("postgresql://")),
+  DATABASE_URL: z3.string().url().or(z3.string().startsWith("postgresql://neondb_owner:npg_75ZGjUnMTBlQ@ep-mute-king-aiq1eati-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")),
   JWT_SECRET: z3.string(),
   CLOUDINARY_SECRET: z3.string(),
   CLOUDINARY_KEY: z3.string(),
@@ -1279,14 +1279,56 @@ var tutorSchemas = {
 // src/modules/tutor/tutor.route.ts
 var router2 = Router2();
 var tutorsRouterPublic = Router2();
-router2.post("/profile", authMiddleware, roleMiddleware(["TUTOR"]), validateRequest(tutorSchemas.createTutorProfileSchema), tutorControllers.createProfile);
-router2.put("/profile", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.updateProfile);
-router2.get("/sessions", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.getTutorSessions);
-router2.get("/dashboard-data/:tutorId", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.getTutorDashboard);
-router2.put("/sessions/:sessionId/finish-session", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.markedSessionFinishController);
-router2.put("/availability", authMiddleware, roleMiddleware(["TUTOR"]), validateRequest(tutorSchemas.addAvailabilitySchema), tutorControllers.addAvailabilityController);
-router2.get("/availability", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.getAllAvailabilities);
-router2.get("/get-dashboard-data", authMiddleware, roleMiddleware(["TUTOR"]), tutorControllers.getTutorDashboard);
+router2.post(
+  "/profile",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  validateRequest(tutorSchemas.createTutorProfileSchema),
+  tutorControllers.createProfile
+);
+router2.put(
+  "/profile",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.updateProfile
+);
+router2.get(
+  "/sessions",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.getTutorSessions
+);
+router2.get(
+  "/dashboard-data/:tutorId",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.getTutorDashboard
+);
+router2.put(
+  "/sessions/:sessionId/finish-session",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.markedSessionFinishController
+);
+router2.put(
+  "/availability",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  validateRequest(tutorSchemas.addAvailabilitySchema),
+  tutorControllers.addAvailabilityController
+);
+router2.get(
+  "/availability",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.getAllAvailabilities
+);
+router2.get(
+  "/get-dashboard-data",
+  authMiddleware,
+  roleMiddleware(["TUTOR"]),
+  tutorControllers.getTutorDashboard
+);
 router2.delete(
   "/availability/:id",
   authMiddleware,
@@ -1299,7 +1341,7 @@ var TutorRoutes = router2;
 
 // src/config/cors.ts
 var corsConfig = {
-  origin: ["http://localhost:5000", "https://skill-bridge-frontend-gamma.vercel.app", "https://skill-bridge-frontend-4vp4.vercel.app"],
+  origin: ["http://localhost:5000", "https://skillbridgeclient-pied.vercel.app", "https://skillbridgeclient-mainu0177-mainuddins-projects-943a859f.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: true
@@ -1336,16 +1378,763 @@ var auth = betterAuth({
   }
 });
 
+// src/modules/student/student.route.ts
+import { Router as Router3 } from "express";
+var router3 = Router3();
+router3.get("/profile", authMiddleware, roleMiddleware(["STUDENT"]), studentController.getProfile);
+router3.put("/profile", authMiddleware, roleMiddleware(["STUDENT"]), studentController.updateProfile);
+router3.post("/profile/avatar-change", authMiddleware, roleMiddleware(["STUDENT"]), studentController.updateProfile);
+router3.get("/:id/dashboard/stats", authMiddleware, roleMiddleware(["STUDENT"]), studentController.getStudentDashboardStats);
+var student_route_default = router3;
+
+// src/modules/booking/booking.route.ts
+import { Router as Router4 } from "express";
+
+// src/modules/booking/booking.schema.ts
+import { z as z5 } from "zod";
+var bookingCreateSchema = z5.object({
+  body: z5.object({
+    tutorId: z5.string({
+      required_error: "Tutor ID is required"
+    }).uuid("Invalid tutor ID"),
+    availabilityId: z5.string({
+      required_error: "availabilityId  is required"
+    }).uuid("Invalid availabilityId ")
+  })
+});
+var bookingSchemas = { bookingCreateSchema };
+
+// src/modules/booking/booking.service.ts
+var createBooking = async (studentId, payload) => {
+  const { tutorId, availabilityId } = payload;
+  const availability = await prisma.availability.findUnique({
+    where: { id: availabilityId }
+  });
+  if (!availability) {
+    throw new AppError(
+      "Availability slot not found"
+    );
+  }
+  if (availability.isBooked) {
+    throw new AppError(
+      "This slot is already booked"
+    );
+  }
+  if (availability.tutorId !== tutorId) {
+    throw new AppError(
+      "Tutor mismatch with availability"
+    );
+  }
+  const newBooking = await prisma.booking.create({
+    data: {
+      studentId,
+      tutorId,
+      dateTime: availability.date,
+      status: "CONFIRMED",
+      availabilityId: payload.availabilityId
+    }
+  });
+  await prisma.availability.update({
+    where: { id: availability.id },
+    data: { isBooked: true }
+  });
+  return newBooking;
+};
+var getAllBookings = async (userId) => {
+  const bookings = await prisma.booking.findMany({
+    where: { studentId: userId },
+    include: {
+      review: true
+    },
+    orderBy: { dateTime: "asc" }
+  });
+  const tutorIds = [...new Set(bookings.map((b) => b.tutorId))];
+  const tutors = await prisma.tutorProfile.findMany({
+    where: {
+      id: { in: tutorIds }
+    },
+    include: {
+      user: true
+    }
+  });
+  const bookingsWithTutor = bookings.map((b) => ({
+    ...b,
+    tutor: tutors.find((t) => t.id === b.tutorId) || null
+  }));
+  return bookingsWithTutor;
+};
+var getBookingDetails = async (bookingId) => {
+  const bookingDetails = await prisma.booking.findUnique({
+    where: {
+      id: bookingId
+    },
+    include: {
+      student: true,
+      review: {
+        include: {
+          student: true
+        }
+      },
+      availability: {
+        include: {
+          tutor: {
+            include: {
+              user: {
+                select: {
+                  profileAvatar: true,
+                  name: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+  if (!bookingDetails) return null;
+  return {
+    ...bookingDetails,
+    tutorProfile: bookingDetails.availability?.tutor || null
+  };
+};
+var cancelBooking = async (userId, bookingId, status) => {
+  await authServices.isUserExist(userId, "USER");
+  console.log("bookingId", bookingId);
+  const isBookingExist = await prisma.booking.findUnique({
+    where: {
+      id: bookingId
+    }
+  });
+  if (!isBookingExist) {
+    throw new AppError("Booking not found");
+  }
+  const booking = await prisma.booking.update({
+    where: {
+      id: bookingId
+    },
+    data: {
+      status: "CANCELLED"
+    }
+  });
+  await prisma.availability.update({
+    where: {
+      id: booking.availabilityId
+    },
+    data: {
+      isBooked: false
+    }
+  });
+  return booking;
+};
+var bookingServices = {
+  createBooking,
+  getBookingDetails,
+  getAllBookings,
+  cancelBooking
+};
+
+// src/modules/booking/booking.controller.ts
+var createBooking2 = async (req, res, next) => {
+  try {
+    const studentId = req.user?.userId;
+    const booking = await bookingServices.createBooking(studentId, req.body);
+    return sendSuccess(res, {
+      statusCode: 201,
+      message: "booking created successfully",
+      data: booking
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getAllBookings2 = async (req, res, next) => {
+  try {
+    const studentId = req.user?.userId;
+    const bookings = await bookingServices.getAllBookings(studentId);
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "your bookings fetch successfully",
+      data: bookings || []
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getBookingsDetails = async (req, res, next) => {
+  try {
+    const bookingId = req.params.id;
+    const booking = await bookingServices.getBookingDetails(bookingId);
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "your bookings fetch successfully",
+      data: booking || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var cancelBooking2 = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const sessionId = req.params.id;
+    const studentId = req.user?.userId;
+    const updateSession = await bookingServices.cancelBooking(studentId, sessionId, status);
+    sendSuccess(res, {
+      message: "session cancel successfully",
+      data: updateSession
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var bookingControllers = {
+  createBooking: createBooking2,
+  getBookingsDetails,
+  getAllBookings: getAllBookings2,
+  cancelBooking: cancelBooking2
+};
+
+// src/modules/booking/booking.route.ts
+var router4 = Router4();
+router4.post("/", authMiddleware, roleMiddleware(["STUDENT"]), validateRequest(bookingSchemas.bookingCreateSchema), bookingControllers.createBooking);
+router4.get("/", authMiddleware, roleMiddleware(["STUDENT"]), bookingControllers.getAllBookings);
+router4.get("/:id", authMiddleware, roleMiddleware(["STUDENT"]), bookingControllers.getBookingsDetails);
+router4.patch("/:id/cancel-booking", authMiddleware, roleMiddleware(["STUDENT"]), bookingControllers.cancelBooking);
+var booking_route_default = router4;
+
+// src/modules/shared/shared.route.ts
+import { Router as Router5 } from "express";
+
+// src/modules/shared/shared.service.ts
+var getAllCategories = async () => {
+  const categories = await prisma.category.findMany({});
+  return categories;
+};
+var getKPISData = async () => {
+  const [
+    totalTutors,
+    totalStudent,
+    activeTutors,
+    tutorSubjects,
+    totalBookings,
+    completedBookings,
+    usersWithLocation
+  ] = await Promise.all([
+    prisma.tutorProfile.count(),
+    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.tutorProfile.count({
+      where: {
+        availability: {
+          some: {
+            isBooked: false,
+            date: { gte: /* @__PURE__ */ new Date() }
+          }
+        }
+      }
+    }),
+    prisma.tutorProfile.findMany({ select: { subjects: true } }),
+    prisma.booking.count(),
+    prisma.booking.count({ where: { status: "COMPLETED" } }),
+    prisma.user.findMany({
+      where: { location: { not: null } },
+      select: { location: true }
+    })
+  ]);
+  const totalSubjects = new Set(tutorSubjects.flatMap((t) => t.subjects)).size;
+  const totalCountries = new Set(usersWithLocation.map((u) => u.location)).size;
+  const successRate = totalBookings === 0 ? 0 : Math.round(completedBookings / totalBookings * 100);
+  return {
+    totalTutors,
+    totalStudent,
+    activeTutors,
+    totalSubjects,
+    successRate,
+    totalCountries
+  };
+};
+var sharedServices = {
+  getAllCategories,
+  getKPISData
+};
+
+// src/modules/shared/shared.controller.ts
+var getAllCategories2 = async (req, res, next) => {
+  try {
+    const categories = await sharedServices.getAllCategories();
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "fetch all categories successfully",
+      data: categories
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getKPIsData = async (req, res, next) => {
+  try {
+    const kpisData = await sharedServices.getKPISData();
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "fetch kpis report successfully",
+      data: kpisData
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var sharedControllers = {
+  getAllCategories: getAllCategories2,
+  getKPIsData
+};
+
+// src/modules/shared/shared.route.ts
+var router5 = Router5();
+router5.get("/categories", sharedControllers.getAllCategories);
+router5.get("/get-kpis-data", sharedControllers.getKPIsData);
+var shared_route_default = router5;
+
+// src/modules/admin/admin.route.ts
+import { Router as Router6 } from "express";
+
+// src/modules/admin/admin.service.ts
+import { startOfMonth, endOfMonth } from "date-fns";
+var getProfile4 = async (userId) => {
+  return await prisma.user.findUnique({
+    where: { id: userId }
+  });
+};
+var getAllUsers = async () => {
+  console.log("services");
+  return await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true
+    },
+    where: {
+      role: {
+        in: ["STUDENT", "TUTOR"]
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+};
+var getAllBookings3 = async () => {
+  return await prisma.booking.findMany({
+    include: {
+      student: true,
+      availability: true,
+      review: true,
+      tutor: {
+        include: {
+          user: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+};
+var updateUserStatus = async (userId, status) => {
+  console.log(status);
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { status },
+    select: { id: true, name: true, email: true, status: true }
+  });
+};
+var createCategory = async (payload) => {
+  const newCategory = await prisma.category.create({
+    data: payload
+  });
+  return newCategory;
+};
+var deleteCategory = async (categoryId) => {
+  const newCategory = await prisma.category.delete({
+    where: {
+      id: categoryId
+    }
+  });
+  return newCategory;
+};
+var updateCategory = async (payload) => {
+  const newCategory = await prisma.category.update({
+    where: {
+      id: payload.categoryId
+    },
+    data: {
+      name: payload.name,
+      subjects: payload.subjects
+    }
+  });
+  return newCategory;
+};
+async function getDashboardData() {
+  const [
+    activeTutors,
+    activeStudents,
+    totalBookings,
+    completedBookingsCount,
+    completedBookings
+  ] = await Promise.all([
+    // Active Tutors
+    prisma.user.count({
+      where: {
+        role: "TUTOR",
+        status: "ACTIVE",
+        tutorProfile: {
+          bookings: {
+            some: {
+              status: {
+                in: ["CONFIRMED", "COMPLETED"]
+              }
+            }
+          }
+        }
+      }
+    }),
+    // Active Students
+    prisma.user.count({
+      where: {
+        role: "STUDENT",
+        status: "ACTIVE",
+        studentBookings: {
+          some: {}
+        }
+      }
+    }),
+    // Total bookings
+    prisma.booking.count(),
+    // Completed bookings count
+    prisma.booking.count({
+      where: {
+        status: "COMPLETED"
+      }
+    }),
+    // Completed bookings with tutor rate (for revenue)
+    prisma.booking.findMany({
+      where: {
+        status: "COMPLETED",
+        createdAt: {
+          gte: startOfMonth(/* @__PURE__ */ new Date()),
+          lte: endOfMonth(/* @__PURE__ */ new Date())
+        }
+      },
+      select: {
+        tutor: {
+          select: {
+            hourlyRate: true
+          }
+        }
+      }
+    })
+  ]);
+  const monthlyRevenue = completedBookings.reduce(
+    (sum, booking) => sum + booking.tutor.hourlyRate,
+    0
+  );
+  const bookingRate = totalBookings === 0 ? 0 : Number(
+    (completedBookingsCount / totalBookings * 100).toFixed(2)
+  );
+  return {
+    activeTutors,
+    activeStudents,
+    monthlyRevenue,
+    bookingRate
+  };
+}
+var adminServices = {
+  getProfile: getProfile4,
+  getAllUsers,
+  updateUserStatus,
+  getAllBookings: getAllBookings3,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getDashboardData
+};
+
+// src/modules/admin/admin.controller.ts
+var getProfile5 = async (req, res, next) => {
+  try {
+    const user = await adminServices.getProfile(req.user.userId);
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Profile fetched successfully",
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getAllUsers2 = async (req, res, next) => {
+  try {
+    console.log("main user", req.user);
+    const users = await adminServices.getAllUsers();
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "All users fetched successfully",
+      data: users
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var updateUserStatus2 = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    console.log(req.body);
+    const user = await adminServices.updateUserStatus(req.params.id, status);
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "User status updated successfully",
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getAllBookings4 = async (req, res, next) => {
+  try {
+    const user = await adminServices.getAllBookings();
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "bookings fetch successfully",
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var createNewCategory = async (req, res, next) => {
+  try {
+    const newCategory = await adminServices.createCategory(req.body);
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "bookings fetch successfully",
+      data: newCategory
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var updateCategory2 = async (req, res, next) => {
+  try {
+    const { name, subjects } = req.body;
+    const categoryId = req.params.categoryId;
+    const updatedCategory = await adminServices.updateCategory({
+      name,
+      subjects,
+      categoryId: String(categoryId)
+    });
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "category updated successfully",
+      data: updatedCategory
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var deleteCategory2 = async (req, res, next) => {
+  try {
+    const categoryId = req.params.categoryId;
+    const newCategory = await adminServices.deleteCategory(String(categoryId));
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "category delete successfully",
+      data: newCategory
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getDashboardData2 = async (req, res, next) => {
+  try {
+    const data = await adminServices.getDashboardData();
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "category delete successfully",
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var adminControllers = {
+  getProfile: getProfile5,
+  getAllBookings: getAllBookings4,
+  getAllUsers: getAllUsers2,
+  updateUserStatus: updateUserStatus2,
+  createNewCategory,
+  updateCategory: updateCategory2,
+  deleteCategory: deleteCategory2,
+  getDashboardData: getDashboardData2
+};
+
+// src/modules/admin/admin.schemas.ts
+import z6 from "zod";
+var createCategorySchema = z6.object({
+  body: z6.object({
+    name: z6.string({
+      required_error: "Category name is required"
+    }),
+    subjects: z6.array(z6.string()).min(1, "Subjects array must contain at least 1 items")
+  })
+});
+var adminSchemas = { createCategorySchema };
+
+// src/modules/admin/admin.route.ts
+var router6 = Router6();
+router6.use(authMiddleware, roleMiddleware(["ADMIN"]));
+router6.get("/profile", adminControllers.getProfile);
+router6.get("/users", adminControllers.getAllUsers);
+router6.get("/bookings", adminControllers.getAllBookings);
+router6.post("/categories", validateRequest(adminSchemas.createCategorySchema), adminControllers.createNewCategory);
+router6.delete("/categories/:categoryId", adminControllers.deleteCategory);
+router6.patch("/categories/:categoryId", adminControllers.updateCategory);
+router6.get("/bookings", adminControllers.getAllBookings);
+router6.get("/get-dashboard-data", adminControllers.getDashboardData);
+router6.patch("/users/:id/status", adminControllers.updateUserStatus);
+var admin_route_default = router6;
+
+// src/modules/review/review.route.ts
+import { Router as Router7 } from "express";
+
+// src/modules/review/review.schema.ts
+import { z as z7 } from "zod";
+var createReviewSchema = z7.object({
+  body: z7.object({
+    bookingId: z7.string().uuid("Invalid booking ID"),
+    tutorId: z7.string().uuid("Invalid tutor ID"),
+    studentId: z7.string().uuid("Invalid student ID"),
+    rating: z7.number().min(1, "Rating must be at least 1").max(5, "Rating cannot exceed 5"),
+    comment: z7.string().min(2, "you must be provide a comment text")
+  })
+});
+var reviewSchemas = { createReviewSchema };
+
+// src/modules/review/review.service.ts
+var createReview = async (payload) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: payload.bookingId }
+  });
+  if (!booking) {
+    throw new Error("Booking not found");
+  }
+  if (booking.status !== "COMPLETED") {
+    throw new Error("Cannot leave review before session is completed");
+  }
+  const existingReview = await prisma.review.findUnique({
+    where: { bookingId: payload.bookingId }
+  });
+  if (existingReview) {
+    throw new Error("Review for this booking already exists");
+  }
+  const review = await prisma.review.create({
+    data: {
+      bookingId: payload.bookingId,
+      studentId: payload.studentId,
+      tutorId: payload.tutorId,
+      rating: payload.rating,
+      comment: payload.comment
+    }
+  });
+  return review;
+};
+var getAllReview = async (tutorId) => {
+  const reviews = await prisma.review.findMany({
+    where: {
+      tutorId
+    },
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          profileAvatar: true
+        }
+      },
+      booking: {
+        select: {
+          dateTime: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+  return reviews;
+};
+var reviewsServices = { createReview, getAllReview };
+
+// src/modules/review/review.controller.ts
+var createReview2 = async (req, res, next) => {
+  try {
+    const studentId = req.user?.userId;
+    const newReview = await reviewsServices.createReview({ ...req.body, studentId });
+    return sendSuccess(res, {
+      statusCode: 201,
+      message: "your Review Created successfully",
+      data: newReview
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var getAllReview2 = async (req, res, next) => {
+  try {
+    const tutorId = req.params.tutorId;
+    console.log("tutorId", tutorId);
+    const allReviewByTutorId = await reviewsServices.getAllReview(tutorId);
+    return sendSuccess(res, {
+      statusCode: 201,
+      message: "your Review fetch successfully",
+      data: allReviewByTutorId
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+var reviewControllers = { createReview: createReview2, getAllReview: getAllReview2 };
+
+// src/modules/review/review.route.ts
+var router7 = Router7();
+router7.post("/", authMiddleware, roleMiddleware(["STUDENT"]), validateRequest(reviewSchemas.createReviewSchema), reviewControllers.createReview);
+router7.get("/:tutorId", authMiddleware, roleMiddleware(["TUTOR"]), reviewControllers.getAllReview);
+var review_route_default = router7;
+
 // src/app.ts
 var app = express();
-app.all("/api/v1/auth/*splat", toNodeHandler(auth));
-app.use(express.json({ limit: "1mb" }));
+app.all("/api/auth/*splat", toNodeHandler(auth));
 app.set("trust proxy", 1);
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(cors(corsConfig));
-app.use("/api/v1/auth", AuthRoutes);
-app.use("/api/v1/tutor", TutorRoutes);
+app.use("/api/auth", AuthRoutes);
+app.use("/api/tutor", TutorRoutes);
+app.use("/api/review", review_route_default);
+app.use("/api/tutors", tutorsRouterPublic);
+app.use("/api/booking", booking_route_default);
+app.use("/api/student", student_route_default);
+app.use("/api/admin", admin_route_default);
+app.use("/api/shared", shared_route_default);
+app.get("/welcome-page", (req, res) => {
+  res.send("welcome to our my app");
+});
+app.get("/check-time", (req, res) => {
+  res.json({
+    serverTime: (/* @__PURE__ */ new Date()).toISOString(),
+    localTime: (/* @__PURE__ */ new Date()).toLocaleString()
+  });
+});
 app.get("/", (req, res) => {
   res.send("Hello Mainuddin Khan!");
 });

@@ -1,17 +1,17 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-    entry: ["src/server.ts"],
-    format: ["esm"],          // ESM output
-    target: "node22",
-    outDir: "dist",
-    sourcemap: true,
-    clean: true,
-    bundle: true,
-    splitting: false,
+  entry: ["src/index.ts"],
+  format: ["esm"], // ESM output
+  target: "node22",
+  outDir: "api",
+  sourcemap: true,
+  clean: true,
+  bundle: true,
+  splitting: false,
 
   //* Externalize all node_modules + Prisma
-    external: [
+  external: [
     "express",
     "@prisma/client",
     "cors",
@@ -24,11 +24,12 @@ export default defineConfig({
     "events",
     "path",
     "fs",
-    "url"
-    ],
+    "url",
+    "better-auth",
+  ],
 
-    outExtension({ format }) {
-        if (format === "esm") return { js: ".js" };
-        return {};
-    },
+  outExtension({ format }) {
+    if (format === "esm") return { js: ".js" };
+    return {};
+  },
 });

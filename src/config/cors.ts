@@ -1,6 +1,7 @@
 export const corsConfig = {
-    origin: ['http://localhost:5000',"https://skill-bridge-frontend-gamma.vercel.app",'https://skill-bridge-frontend-4vp4.vercel.app'],
+    origin: ['http://localhost:5000',"https://skillbridgeclient-pied.vercel.app",'https://skillbridgeclient-mainu0177-mainuddins-projects-943a859f.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
 };
+
