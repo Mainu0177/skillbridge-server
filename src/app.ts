@@ -18,14 +18,18 @@ import reviewRoutes from "./modules/review/review.route";
 
 // parsers
 const app: Express = express();
+// app.use(cors(corsConfig));
+app.use(cors({
+    origin: process.env.APP_URL || "http://localhost:4000", // client side url
+    credentials: true
+}))
+app.use(express.json({ limit: '1mb' }));
 app.all("/api/auth/*splat", toNodeHandler(auth));
 app.set("trust proxy", 1);
 app.use(cookieParser());
-app.use(express.json({ limit: '1mb' }));
-app.use(cors(corsConfig));
 
 
-app.use("/api/auth",AuthRoutes) // auth routes
+app.use("/api/v1/auth",AuthRoutes) // auth routes
 app.use("/api/tutor",TutorRoutes) // only tutor private routes
 app.use("/api/review",reviewRoutes) // only tutor private routes
 app.use("/api/tutors",tutorsRouterPublic) // tutors public access routes
@@ -36,6 +40,7 @@ app.use("/api/shared",sharedRoutes) // shared or public apis only
 app.get("/welcome-page",(req,res)=>{
   res.send("welcome to our my app")
 })
+
 app.get('/check-time', (req, res) => {
     res.json({
         serverTime: new Date().toISOString(),
